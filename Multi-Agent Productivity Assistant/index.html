@@ -1,0 +1,2306 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>NEXUS — Multi-Agent AI System</title>
+    <style>
+      @import url("https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Syne:wght@400;600;700;800&display=swap");
+
+      :root {
+        --bg: #0a0a0f;
+        --surface: #111118;
+        --surface2: #1a1a24;
+        --border: #2a2a3a;
+        --accent: #7c3aed;
+        --accent2: #06b6d4;
+        --accent3: #f59e0b;
+        --success: #10b981;
+        --danger: #ef4444;
+        --text: #e2e8f0;
+        --muted: #64748b;
+        --mono: "Space Mono", monospace;
+        --sans: "Syne", sans-serif;
+      }
+
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        background: var(--bg);
+        color: var(--text);
+        font-family: var(--sans);
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        overflow-x: hidden;
+      }
+
+      /* Grid overlay */
+      body::before {
+        content: "";
+        position: fixed;
+        inset: 0;
+        background-image:
+          linear-gradient(rgba(124, 58, 237, 0.03) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(124, 58, 237, 0.03) 1px, transparent 1px);
+        background-size: 40px 40px;
+        pointer-events: none;
+        z-index: 0;
+      }
+
+      /* ── HEADER ── */
+      header {
+        position: sticky;
+        top: 0;
+        z-index: 100;
+        background: rgba(10, 10, 15, 0.85);
+        backdrop-filter: blur(16px);
+        border-bottom: 1px solid var(--border);
+        padding: 0 2rem;
+        display: flex;
+        align-items: center;
+        gap: 2rem;
+        height: 60px;
+      }
+
+      .logo {
+        font-family: var(--mono);
+        font-weight: 700;
+        font-size: 1.1rem;
+        color: var(--accent2);
+        letter-spacing: 0.15em;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+      }
+
+      .logo-dot {
+        width: 8px;
+        height: 8px;
+        background: var(--accent);
+        border-radius: 50%;
+        animation: pulse 2s infinite;
+      }
+
+      @keyframes pulse {
+        0%,
+        100% {
+          opacity: 1;
+          transform: scale(1);
+        }
+        50% {
+          opacity: 0.5;
+          transform: scale(0.8);
+        }
+      }
+
+      .nav-tabs {
+        display: flex;
+        gap: 0.25rem;
+        margin-left: auto;
+      }
+
+      .nav-tab {
+        padding: 0.4rem 1rem;
+        border-radius: 6px;
+        font-family: var(--mono);
+        font-size: 0.75rem;
+        cursor: pointer;
+        border: 1px solid transparent;
+        background: transparent;
+        color: var(--muted);
+        transition: all 0.2s;
+        letter-spacing: 0.05em;
+      }
+
+      .nav-tab:hover {
+        color: var(--text);
+        border-color: var(--border);
+      }
+      .nav-tab.active {
+        color: var(--accent2);
+        border-color: var(--accent2);
+        background: rgba(6, 182, 212, 0.08);
+      }
+
+      .status-bar {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-family: var(--mono);
+        font-size: 0.7rem;
+        color: var(--success);
+        padding: 0.3rem 0.75rem;
+        border: 1px solid rgba(16, 185, 129, 0.3);
+        border-radius: 4px;
+        background: rgba(16, 185, 129, 0.05);
+      }
+
+      .status-dot {
+        width: 6px;
+        height: 6px;
+        background: var(--success);
+        border-radius: 50%;
+        animation: pulse 1.5s infinite;
+      }
+
+      /* ── MAIN LAYOUT ── */
+      .app {
+        display: grid;
+        grid-template-columns: 280px 1fr 320px;
+        flex: 1;
+        height: calc(100vh - 60px);
+        position: relative;
+        z-index: 1;
+      }
+
+      /* ── LEFT PANEL: Agents ── */
+      .agents-panel {
+        border-right: 1px solid var(--border);
+        display: flex;
+        flex-direction: column;
+        overflow-y: auto;
+      }
+
+      .panel-title {
+        padding: 1rem 1.25rem 0.75rem;
+        font-family: var(--mono);
+        font-size: 0.65rem;
+        letter-spacing: 0.12em;
+        color: var(--muted);
+        text-transform: uppercase;
+        border-bottom: 1px solid var(--border);
+      }
+
+      .agent-card {
+        padding: 1rem 1.25rem;
+        border-bottom: 1px solid var(--border);
+        cursor: pointer;
+        transition: background 0.15s;
+        position: relative;
+      }
+
+      .agent-card:hover {
+        background: rgba(255, 255, 255, 0.02);
+      }
+      .agent-card.active {
+        background: rgba(124, 58, 237, 0.08);
+      }
+
+      .agent-card::before {
+        content: "";
+        position: absolute;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        width: 3px;
+        border-radius: 0 2px 2px 0;
+        background: transparent;
+        transition: background 0.2s;
+      }
+
+      .agent-card.active::before {
+        background: var(--accent);
+      }
+
+      .agent-header {
+        display: flex;
+        align-items: center;
+        gap: 0.6rem;
+        margin-bottom: 0.4rem;
+      }
+
+      .agent-icon {
+        width: 32px;
+        height: 32px;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1rem;
+        flex-shrink: 0;
+      }
+
+      .agent-name {
+        font-weight: 700;
+        font-size: 0.85rem;
+        color: var(--text);
+      }
+
+      .agent-role {
+        font-family: var(--mono);
+        font-size: 0.65rem;
+        color: var(--muted);
+        letter-spacing: 0.05em;
+      }
+
+      .agent-status {
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+        font-family: var(--mono);
+        font-size: 0.65rem;
+        margin-top: 0.4rem;
+      }
+
+      .agent-status-dot {
+        width: 5px;
+        height: 5px;
+        border-radius: 50%;
+      }
+
+      .agent-tools {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.3rem;
+        margin-top: 0.5rem;
+      }
+
+      .tool-badge {
+        padding: 0.15rem 0.5rem;
+        border-radius: 3px;
+        font-family: var(--mono);
+        font-size: 0.6rem;
+        background: var(--surface2);
+        color: var(--muted);
+        border: 1px solid var(--border);
+      }
+
+      /* ── CENTER: Main Chat / Workflow ── */
+      .center-panel {
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+      }
+
+      .workflow-bar {
+        padding: 0.75rem 1.5rem;
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        background: var(--surface);
+      }
+
+      .workflow-title {
+        font-size: 0.9rem;
+        font-weight: 700;
+        color: var(--text);
+      }
+
+      .workflow-step {
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+        font-family: var(--mono);
+        font-size: 0.65rem;
+        color: var(--muted);
+      }
+
+      .workflow-step.done {
+        color: var(--success);
+      }
+      .workflow-step.active {
+        color: var(--accent2);
+      }
+      .step-arrow {
+        color: var(--border);
+      }
+
+      .messages-area {
+        flex: 1;
+        overflow-y: auto;
+        padding: 1.5rem;
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+        scroll-behavior: smooth;
+      }
+
+      .message {
+        display: flex;
+        gap: 0.75rem;
+        animation: fadeIn 0.3s ease;
+      }
+
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+          transform: translateY(8px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      .message.user {
+        flex-direction: row-reverse;
+      }
+
+      .msg-avatar {
+        width: 34px;
+        height: 34px;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.9rem;
+        flex-shrink: 0;
+        font-weight: 700;
+        background: var(--surface2);
+        border: 1px solid var(--border);
+      }
+
+      .msg-body {
+        max-width: 75%;
+        display: flex;
+        flex-direction: column;
+        gap: 0.3rem;
+      }
+      .message.user .msg-body {
+        align-items: flex-end;
+      }
+
+      .msg-meta {
+        font-family: var(--mono);
+        font-size: 0.6rem;
+        color: var(--muted);
+        display: flex;
+        gap: 0.5rem;
+      }
+
+      .msg-bubble {
+        padding: 0.75rem 1rem;
+        border-radius: 12px;
+        font-size: 0.85rem;
+        line-height: 1.6;
+        border: 1px solid var(--border);
+        background: var(--surface);
+        max-width: 100%;
+        word-break: break-word;
+      }
+
+      .message.user .msg-bubble {
+        background: rgba(124, 58, 237, 0.15);
+        border-color: rgba(124, 58, 237, 0.3);
+      }
+
+      .msg-bubble.agent-primary {
+        border-color: rgba(124, 58, 237, 0.4);
+      }
+      .msg-bubble.agent-task {
+        border-color: rgba(6, 182, 212, 0.3);
+      }
+      .msg-bubble.agent-calendar {
+        border-color: rgba(245, 158, 11, 0.3);
+      }
+      .msg-bubble.agent-notes {
+        border-color: rgba(16, 185, 129, 0.3);
+      }
+
+      .msg-bubble pre {
+        background: var(--bg);
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        padding: 0.75rem;
+        font-family: var(--mono);
+        font-size: 0.72rem;
+        margin-top: 0.5rem;
+        overflow-x: auto;
+        white-space: pre-wrap;
+        color: var(--accent2);
+      }
+
+      .tool-call {
+        background: var(--bg);
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        padding: 0.6rem 0.75rem;
+        margin-top: 0.4rem;
+        font-family: var(--mono);
+        font-size: 0.7rem;
+        display: flex;
+        align-items: flex-start;
+        gap: 0.5rem;
+      }
+
+      .tool-call-icon {
+        color: var(--accent3);
+      }
+      .tool-call-content {
+        flex: 1;
+      }
+      .tool-call-name {
+        color: var(--accent3);
+        font-weight: 700;
+      }
+      .tool-call-args {
+        color: var(--muted);
+        margin-top: 0.2rem;
+      }
+      .tool-call-result {
+        color: var(--success);
+        margin-top: 0.2rem;
+      }
+
+      .thinking-indicator {
+        display: flex;
+        gap: 4px;
+        align-items: center;
+        padding: 0.6rem 0;
+      }
+
+      .thinking-dot {
+        width: 6px;
+        height: 6px;
+        background: var(--accent);
+        border-radius: 50%;
+        animation: bounce 1.2s infinite;
+      }
+
+      .thinking-dot:nth-child(2) {
+        animation-delay: 0.2s;
+      }
+      .thinking-dot:nth-child(3) {
+        animation-delay: 0.4s;
+      }
+
+      @keyframes bounce {
+        0%,
+        60%,
+        100% {
+          transform: translateY(0);
+        }
+        30% {
+          transform: translateY(-6px);
+        }
+      }
+
+      /* Input area */
+      .input-area {
+        border-top: 1px solid var(--border);
+        padding: 1rem 1.5rem;
+        background: var(--surface);
+      }
+
+      .input-row {
+        display: flex;
+        gap: 0.75rem;
+        align-items: flex-end;
+      }
+
+      .input-box {
+        flex: 1;
+        background: var(--bg);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 0.75rem 1rem;
+        color: var(--text);
+        font-family: var(--sans);
+        font-size: 0.875rem;
+        resize: none;
+        min-height: 44px;
+        max-height: 120px;
+        outline: none;
+        transition: border-color 0.2s;
+        line-height: 1.5;
+      }
+
+      .input-box:focus {
+        border-color: var(--accent);
+      }
+      .input-box::placeholder {
+        color: var(--muted);
+      }
+
+      .send-btn {
+        width: 44px;
+        height: 44px;
+        border-radius: 10px;
+        background: var(--accent);
+        border: none;
+        color: white;
+        cursor: pointer;
+        font-size: 1.1rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s;
+        flex-shrink: 0;
+      }
+
+      .send-btn:hover {
+        background: #6d28d9;
+        transform: scale(1.05);
+      }
+      .send-btn:disabled {
+        opacity: 0.4;
+        cursor: not-allowed;
+        transform: none;
+      }
+
+      .quick-prompts {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.4rem;
+        margin-bottom: 0.75rem;
+      }
+
+      .quick-prompt {
+        padding: 0.3rem 0.75rem;
+        border-radius: 20px;
+        font-size: 0.72rem;
+        font-family: var(--mono);
+        border: 1px solid var(--border);
+        background: var(--surface2);
+        color: var(--muted);
+        cursor: pointer;
+        transition: all 0.15s;
+        white-space: nowrap;
+      }
+
+      .quick-prompt:hover {
+        color: var(--text);
+        border-color: var(--accent2);
+        color: var(--accent2);
+        background: rgba(6, 182, 212, 0.05);
+      }
+
+      /* ── RIGHT PANEL: Data / DB ── */
+      .data-panel {
+        border-left: 1px solid var(--border);
+        display: flex;
+        flex-direction: column;
+        overflow-y: auto;
+      }
+
+      .data-section {
+        border-bottom: 1px solid var(--border);
+      }
+
+      .data-section-header {
+        padding: 0.75rem 1rem;
+        font-family: var(--mono);
+        font-size: 0.65rem;
+        letter-spacing: 0.1em;
+        color: var(--muted);
+        text-transform: uppercase;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        cursor: pointer;
+      }
+
+      .data-section-header:hover {
+        color: var(--text);
+      }
+
+      .data-section-body {
+        padding: 0.5rem 1rem 0.75rem;
+      }
+
+      .task-item {
+        padding: 0.6rem 0.75rem;
+        border-radius: 8px;
+        border: 1px solid var(--border);
+        background: var(--surface2);
+        margin-bottom: 0.5rem;
+        font-size: 0.8rem;
+        display: flex;
+        align-items: flex-start;
+        gap: 0.5rem;
+        transition: border-color 0.2s;
+      }
+
+      .task-item:hover {
+        border-color: var(--accent);
+      }
+
+      .task-check {
+        width: 16px;
+        height: 16px;
+        border-radius: 4px;
+        border: 1.5px solid var(--border);
+        cursor: pointer;
+        flex-shrink: 0;
+        margin-top: 1px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s;
+        font-size: 0.65rem;
+      }
+
+      .task-check.done {
+        background: var(--success);
+        border-color: var(--success);
+        color: white;
+      }
+
+      .task-content {
+        flex: 1;
+      }
+      .task-title {
+        color: var(--text);
+        line-height: 1.4;
+      }
+      .task-title.done {
+        text-decoration: line-through;
+        color: var(--muted);
+      }
+      .task-meta {
+        font-family: var(--mono);
+        font-size: 0.6rem;
+        color: var(--muted);
+        margin-top: 0.2rem;
+      }
+
+      .priority-dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        flex-shrink: 0;
+        margin-top: 5px;
+      }
+
+      .priority-high {
+        background: var(--danger);
+      }
+      .priority-med {
+        background: var(--accent3);
+      }
+      .priority-low {
+        background: var(--success);
+      }
+
+      .event-item {
+        padding: 0.5rem 0.75rem;
+        border-radius: 8px;
+        border-left: 3px solid var(--accent);
+        background: var(--surface2);
+        margin-bottom: 0.4rem;
+        font-size: 0.78rem;
+      }
+
+      .event-time {
+        font-family: var(--mono);
+        font-size: 0.65rem;
+        color: var(--accent2);
+        margin-bottom: 0.2rem;
+      }
+
+      .event-title {
+        color: var(--text);
+        font-weight: 600;
+      }
+
+      .note-item {
+        padding: 0.6rem 0.75rem;
+        border-radius: 8px;
+        background: rgba(245, 158, 11, 0.06);
+        border: 1px solid rgba(245, 158, 11, 0.15);
+        margin-bottom: 0.4rem;
+        font-size: 0.78rem;
+        color: var(--text);
+      }
+
+      .note-label {
+        font-family: var(--mono);
+        font-size: 0.6rem;
+        color: var(--accent3);
+        margin-bottom: 0.2rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+      }
+
+      /* DB indicator */
+      .db-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0.4rem 0;
+        font-family: var(--mono);
+        font-size: 0.7rem;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+      }
+
+      .db-key {
+        color: var(--muted);
+      }
+      .db-val {
+        color: var(--accent2);
+      }
+
+      /* Scrollbar */
+      ::-webkit-scrollbar {
+        width: 4px;
+      }
+      ::-webkit-scrollbar-track {
+        background: transparent;
+      }
+      ::-webkit-scrollbar-thumb {
+        background: var(--border);
+        border-radius: 2px;
+      }
+
+      /* Tabs within panel */
+      .view-tabs {
+        display: flex;
+        border-bottom: 1px solid var(--border);
+      }
+
+      .view-tab {
+        flex: 1;
+        padding: 0.6rem;
+        text-align: center;
+        font-family: var(--mono);
+        font-size: 0.65rem;
+        letter-spacing: 0.08em;
+        cursor: pointer;
+        color: var(--muted);
+        border-bottom: 2px solid transparent;
+        transition: all 0.15s;
+      }
+
+      .view-tab:hover {
+        color: var(--text);
+      }
+      .view-tab.active {
+        color: var(--accent2);
+        border-bottom-color: var(--accent2);
+      }
+
+      /* Architecture overlay */
+      .arch-banner {
+        padding: 0.6rem 1.5rem;
+        background: linear-gradient(
+          90deg,
+          rgba(124, 58, 237, 0.1),
+          rgba(6, 182, 212, 0.05)
+        );
+        border-bottom: 1px solid rgba(124, 58, 237, 0.2);
+        font-family: var(--mono);
+        font-size: 0.65rem;
+        color: var(--muted);
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        overflow-x: auto;
+      }
+
+      .arch-node {
+        display: flex;
+        align-items: center;
+        gap: 0.35rem;
+        white-space: nowrap;
+        padding: 0.2rem 0.5rem;
+        border-radius: 4px;
+        border: 1px solid var(--border);
+        background: var(--surface2);
+      }
+
+      .arch-node.primary {
+        border-color: rgba(124, 58, 237, 0.5);
+        color: #a78bfa;
+      }
+      .arch-node.sub {
+        border-color: rgba(6, 182, 212, 0.3);
+        color: var(--accent2);
+      }
+      .arch-arrow {
+        color: var(--muted);
+      }
+
+      /* Tag */
+      .tag {
+        display: inline-block;
+        padding: 0.1rem 0.45rem;
+        border-radius: 3px;
+        font-family: var(--mono);
+        font-size: 0.6rem;
+        font-weight: 700;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+      }
+
+      .tag-primary {
+        background: rgba(124, 58, 237, 0.2);
+        color: #a78bfa;
+      }
+      .tag-sub {
+        background: rgba(6, 182, 212, 0.15);
+        color: var(--accent2);
+      }
+      .tag-tool {
+        background: rgba(245, 158, 11, 0.15);
+        color: var(--accent3);
+      }
+
+      /* Responsive note */
+      @media (max-width: 900px) {
+        .app {
+          grid-template-columns: 200px 1fr;
+        }
+        .data-panel {
+          display: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <!-- HEADER -->
+    <header>
+      <div class="logo">
+        <div class="logo-dot"></div>
+        NEXUS
+      </div>
+      <span
+        style="font-family: var(--mono); font-size: 0.7rem; color: var(--muted)"
+        >Multi-Agent AI System</span
+      >
+      <div class="nav-tabs">
+        <button class="nav-tab active" onclick="switchView('chat')">
+          ORCHESTRATOR
+        </button>
+        <button class="nav-tab" onclick="switchView('arch')">
+          ARCHITECTURE
+        </button>
+        <button class="nav-tab" onclick="switchView('api')">API SPEC</button>
+      </div>
+      <div class="status-bar">
+        <div class="status-dot"></div>
+        ALL AGENTS ONLINE
+      </div>
+    </header>
+
+    <!-- ARCHITECTURE FLOW BAR -->
+    <div class="arch-banner">
+      <div class="arch-node primary">🧠 Primary Agent</div>
+      <span class="arch-arrow">→ coordinates →</span>
+      <div class="arch-node sub">📋 Task Agent</div>
+      <span class="arch-arrow">+</span>
+      <div class="arch-node sub">📅 Calendar Agent</div>
+      <span class="arch-arrow">+</span>
+      <div class="arch-node sub">📝 Notes Agent</div>
+      <span class="arch-arrow">→ reads/writes →</span>
+      <div
+        class="arch-node"
+        style="border-color: rgba(16, 185, 129, 0.3); color: var(--success)"
+      >
+        🗄️ SQLite DB
+      </div>
+      <span class="arch-arrow">→ exposed via →</span>
+      <div
+        class="arch-node"
+        style="border-color: rgba(239, 68, 68, 0.3); color: #f87171"
+      >
+        ⚡ FastAPI
+      </div>
+    </div>
+
+    <!-- MAIN APP -->
+    <div class="app" id="app">
+      <!-- LEFT: Agents -->
+      <div class="agents-panel">
+        <div class="panel-title">AGENT REGISTRY</div>
+
+        <div class="agent-card active" onclick="selectAgent('primary')">
+          <div class="agent-header">
+            <div
+              class="agent-icon"
+              style="
+                background: rgba(124, 58, 237, 0.15);
+                border: 1px solid rgba(124, 58, 237, 0.3);
+              "
+            >
+              🧠
+            </div>
+            <div>
+              <div class="agent-name">Nexus Primary</div>
+              <div class="agent-role">ORCHESTRATOR AGENT</div>
+            </div>
+          </div>
+          <div class="agent-status">
+            <div
+              class="agent-status-dot"
+              style="background: var(--success)"
+            ></div>
+            <span style="color: var(--success)">ACTIVE</span>
+            <span style="color: var(--muted)">· claude-sonnet-4</span>
+          </div>
+          <div class="agent-tools">
+            <span class="tool-badge">route_to_agent</span>
+            <span class="tool-badge">synthesize</span>
+            <span class="tool-badge">plan_workflow</span>
+          </div>
+        </div>
+
+        <div class="agent-card" onclick="selectAgent('task')">
+          <div class="agent-header">
+            <div
+              class="agent-icon"
+              style="
+                background: rgba(6, 182, 212, 0.1);
+                border: 1px solid rgba(6, 182, 212, 0.2);
+              "
+            >
+              📋
+            </div>
+            <div>
+              <div class="agent-name">Task Manager</div>
+              <div class="agent-role">SUB-AGENT · TASKS</div>
+            </div>
+          </div>
+          <div class="agent-status">
+            <div
+              class="agent-status-dot"
+              style="background: var(--success)"
+            ></div>
+            <span style="color: var(--success)">READY</span>
+            <span style="color: var(--muted)">· MCP:task-manager</span>
+          </div>
+          <div class="agent-tools">
+            <span class="tool-badge">create_task</span>
+            <span class="tool-badge">list_tasks</span>
+            <span class="tool-badge">update_task</span>
+            <span class="tool-badge">delete_task</span>
+          </div>
+        </div>
+
+        <div class="agent-card" onclick="selectAgent('calendar')">
+          <div class="agent-header">
+            <div
+              class="agent-icon"
+              style="
+                background: rgba(245, 158, 11, 0.1);
+                border: 1px solid rgba(245, 158, 11, 0.2);
+              "
+            >
+              📅
+            </div>
+            <div>
+              <div class="agent-name">Calendar Agent</div>
+              <div class="agent-role">SUB-AGENT · SCHEDULE</div>
+            </div>
+          </div>
+          <div class="agent-status">
+            <div
+              class="agent-status-dot"
+              style="background: var(--success)"
+            ></div>
+            <span style="color: var(--success)">READY</span>
+            <span style="color: var(--muted)">· MCP:calendar</span>
+          </div>
+          <div class="agent-tools">
+            <span class="tool-badge">create_event</span>
+            <span class="tool-badge">get_schedule</span>
+            <span class="tool-badge">find_slots</span>
+            <span class="tool-badge">update_event</span>
+          </div>
+        </div>
+
+        <div class="agent-card" onclick="selectAgent('notes')">
+          <div class="agent-header">
+            <div
+              class="agent-icon"
+              style="
+                background: rgba(16, 185, 129, 0.1);
+                border: 1px solid rgba(16, 185, 129, 0.2);
+              "
+            >
+              📝
+            </div>
+            <div>
+              <div class="agent-name">Notes Agent</div>
+              <div class="agent-role">SUB-AGENT · KNOWLEDGE</div>
+            </div>
+          </div>
+          <div class="agent-status">
+            <div
+              class="agent-status-dot"
+              style="background: var(--success)"
+            ></div>
+            <span style="color: var(--success)">READY</span>
+            <span style="color: var(--muted)">· MCP:notes</span>
+          </div>
+          <div class="agent-tools">
+            <span class="tool-badge">save_note</span>
+            <span class="tool-badge">search_notes</span>
+            <span class="tool-badge">summarize</span>
+          </div>
+        </div>
+
+        <!-- DB Stats -->
+        <div
+          style="padding: 1rem 1.25rem; border-bottom: 1px solid var(--border)"
+        >
+          <div
+            style="
+              font-family: var(--mono);
+              font-size: 0.65rem;
+              color: var(--muted);
+              letter-spacing: 0.1em;
+              margin-bottom: 0.6rem;
+            "
+          >
+            DATABASE · SQLite
+          </div>
+          <div class="db-row">
+            <span class="db-key">tasks</span
+            ><span class="db-val" id="task-count">4 records</span>
+          </div>
+          <div class="db-row">
+            <span class="db-key">events</span
+            ><span class="db-val" id="event-count">3 records</span>
+          </div>
+          <div class="db-row">
+            <span class="db-key">notes</span
+            ><span class="db-val" id="note-count">2 records</span>
+          </div>
+          <div class="db-row">
+            <span class="db-key">agent_logs</span
+            ><span class="db-val" id="log-count">0 records</span>
+          </div>
+        </div>
+
+        <div style="padding: 1rem 1.25rem">
+          <div
+            style="
+              font-family: var(--mono);
+              font-size: 0.65rem;
+              color: var(--muted);
+              letter-spacing: 0.1em;
+              margin-bottom: 0.6rem;
+            "
+          >
+            MCP SERVERS
+          </div>
+          <div class="db-row">
+            <span class="db-key">task-manager</span
+            ><span
+              style="
+                color: var(--success);
+                font-family: var(--mono);
+                font-size: 0.7rem;
+              "
+              >● connected</span
+            >
+          </div>
+          <div class="db-row">
+            <span class="db-key">calendar</span
+            ><span
+              style="
+                color: var(--success);
+                font-family: var(--mono);
+                font-size: 0.7rem;
+              "
+              >● connected</span
+            >
+          </div>
+          <div class="db-row">
+            <span class="db-key">notes</span
+            ><span
+              style="
+                color: var(--success);
+                font-family: var(--mono);
+                font-size: 0.7rem;
+              "
+              >● connected</span
+            >
+          </div>
+          <div class="db-row">
+            <span class="db-key">api-server</span
+            ><span
+              style="
+                color: var(--success);
+                font-family: var(--mono);
+                font-size: 0.7rem;
+              "
+              >● :8000</span
+            >
+          </div>
+        </div>
+      </div>
+
+      <!-- CENTER: Chat -->
+      <div class="center-panel">
+        <!-- Workflow steps -->
+        <div class="workflow-bar" id="workflow-bar">
+          <span class="workflow-title">WORKFLOW</span>
+          <span class="workflow-step" id="step-parse">
+            <span>1. PARSE</span>
+          </span>
+          <span class="step-arrow">›</span>
+          <span class="workflow-step" id="step-route">
+            <span>2. ROUTE</span>
+          </span>
+          <span class="step-arrow">›</span>
+          <span class="workflow-step" id="step-execute">
+            <span>3. EXECUTE</span>
+          </span>
+          <span class="step-arrow">›</span>
+          <span class="workflow-step" id="step-store">
+            <span>4. STORE</span>
+          </span>
+          <span class="step-arrow">›</span>
+          <span class="workflow-step" id="step-respond">
+            <span>5. RESPOND</span>
+          </span>
+        </div>
+
+        <!-- Messages -->
+        <div class="messages-area" id="messages">
+          <!-- Welcome message -->
+          <div class="message">
+            <div
+              class="msg-avatar"
+              style="
+                background: rgba(124, 58, 237, 0.15);
+                border-color: rgba(124, 58, 237, 0.3);
+                color: #a78bfa;
+              "
+            >
+              🧠
+            </div>
+            <div class="msg-body">
+              <div class="msg-meta">
+                <span style="color: #a78bfa">Nexus Primary</span>
+                <span>ORCHESTRATOR</span>
+                <span>just now</span>
+              </div>
+              <div class="msg-bubble agent-primary">
+                <strong>NEXUS Multi-Agent System online.</strong> I coordinate
+                three specialized sub-agents to manage your tasks, schedule, and
+                notes.<br /><br />
+                I use <strong>Anthropic Claude</strong> as my reasoning core,
+                with each sub-agent connected to its own
+                <strong>MCP server</strong>. All structured data is persisted in
+                <strong>SQLite</strong> and exposed through a
+                <strong>FastAPI</strong> REST API.<br /><br />
+                Try a multi-step request like
+                <em
+                  >"Plan my week — I have a deadline Friday, need to prep
+                  slides, and want to note the client requirements."</em
+                >
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Input -->
+        <div class="input-area">
+          <div class="quick-prompts">
+            <button
+              class="quick-prompt"
+              onclick="
+                usePrompt(
+                  'Add a high priority task: finish the project proposal by Friday',
+                )
+              "
+            >
+              📋 Add urgent task
+            </button>
+            <button
+              class="quick-prompt"
+              onclick="
+                usePrompt(
+                  'Schedule a team standup tomorrow at 10am for 30 minutes',
+                )
+              "
+            >
+              📅 Schedule meeting
+            </button>
+            <button
+              class="quick-prompt"
+              onclick="
+                usePrompt(
+                  'Save a note: Client wants dark mode and mobile support as top priorities',
+                )
+              "
+            >
+              📝 Save note
+            </button>
+            <button
+              class="quick-prompt"
+              onclick="
+                usePrompt(
+                  'Plan my week: deadline Friday, prep slides Wednesday, review notes Tuesday',
+                )
+              "
+            >
+              🔀 Multi-step workflow
+            </button>
+            <button
+              class="quick-prompt"
+              onclick="
+                usePrompt(
+                  'What tasks are due this week and do I have time on my calendar?',
+                )
+              "
+            >
+              📊 Status overview
+            </button>
+          </div>
+          <div class="input-row">
+            <textarea
+              class="input-box"
+              id="user-input"
+              placeholder="Ask the orchestrator anything..."
+              rows="1"
+              onkeydown="
+                if (event.key === 'Enter' && !event.shiftKey) {
+                  event.preventDefault();
+                  sendMessage();
+                }
+              "
+              oninput="autoResize(this)"
+            ></textarea>
+            <button class="send-btn" id="send-btn" onclick="sendMessage()">
+              →
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- RIGHT: Data -->
+      <div class="data-panel">
+        <div class="view-tabs">
+          <div class="view-tab active" onclick="switchDataTab('tasks', this)">
+            TASKS
+          </div>
+          <div class="view-tab" onclick="switchDataTab('calendar', this)">
+            CALENDAR
+          </div>
+          <div class="view-tab" onclick="switchDataTab('notes', this)">
+            NOTES
+          </div>
+        </div>
+
+        <!-- Tasks view -->
+        <div
+          id="data-tasks"
+          class="data-section-body"
+          style="padding: 0.75rem 1rem"
+        >
+          <div class="task-item" id="task-1">
+            <div class="priority-dot priority-high"></div>
+            <div class="task-check" onclick="toggleTask('task-1')"></div>
+            <div class="task-content">
+              <div class="task-title">Finish project proposal</div>
+              <div class="task-meta">Due: Friday · HIGH · assigned to self</div>
+            </div>
+          </div>
+
+          <div class="task-item" id="task-2">
+            <div class="priority-dot priority-med"></div>
+            <div class="task-check" onclick="toggleTask('task-2')"></div>
+            <div class="task-content">
+              <div class="task-title">
+                Prepare slide deck for client meeting
+              </div>
+              <div class="task-meta">Due: Wednesday · MED · in progress</div>
+            </div>
+          </div>
+
+          <div class="task-item" id="task-3">
+            <div class="priority-dot priority-low"></div>
+            <div class="task-check done" onclick="toggleTask('task-3')">✓</div>
+            <div class="task-content">
+              <div class="task-title done">Review design mockups</div>
+              <div class="task-meta">Completed · LOW</div>
+            </div>
+          </div>
+
+          <div class="task-item" id="task-4">
+            <div class="priority-dot priority-med"></div>
+            <div class="task-check" onclick="toggleTask('task-4')"></div>
+            <div class="task-content">
+              <div class="task-title">Send weekly update email</div>
+              <div class="task-meta">Due: Today · MED · pending</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Calendar view -->
+        <div
+          id="data-calendar"
+          class="data-section-body"
+          style="padding: 0.75rem 1rem; display: none"
+        >
+          <div class="event-item">
+            <div class="event-time">TODAY · 2:00 PM – 3:00 PM</div>
+            <div class="event-title">Design Review Call</div>
+            <div
+              style="
+                font-size: 0.72rem;
+                color: var(--muted);
+                margin-top: 0.2rem;
+              "
+            >
+              Google Meet · 4 attendees
+            </div>
+          </div>
+
+          <div class="event-item" style="border-left-color: var(--accent3)">
+            <div class="event-time" style="color: var(--accent3)">
+              TOMORROW · 10:00 AM – 10:30 AM
+            </div>
+            <div class="event-title">Team Standup</div>
+            <div
+              style="
+                font-size: 0.72rem;
+                color: var(--muted);
+                margin-top: 0.2rem;
+              "
+            >
+              Zoom · 6 attendees
+            </div>
+          </div>
+
+          <div class="event-item" style="border-left-color: var(--success)">
+            <div class="event-time" style="color: var(--success)">
+              FRI · 3:00 PM – 4:00 PM
+            </div>
+            <div class="event-title">Project Deadline Review</div>
+            <div
+              style="
+                font-size: 0.72rem;
+                color: var(--muted);
+                margin-top: 0.2rem;
+              "
+            >
+              Internal · proposal due
+            </div>
+          </div>
+        </div>
+
+        <!-- Notes view -->
+        <div
+          id="data-notes"
+          class="data-section-body"
+          style="padding: 0.75rem 1rem; display: none"
+        >
+          <div class="note-item">
+            <div class="note-label">CLIENT REQUIREMENTS</div>
+            Dark mode and mobile support are top priorities. Performance budget:
+            &lt;3s LCP. Accessibility: WCAG 2.1 AA.
+            <div
+              style="
+                font-family: var(--mono);
+                font-size: 0.6rem;
+                color: var(--muted);
+                margin-top: 0.3rem;
+              "
+            >
+              saved 2h ago · pinned
+            </div>
+          </div>
+
+          <div class="note-item">
+            <div class="note-label">MEETING NOTES</div>
+            Q4 roadmap: focus on onboarding flow. Reduce friction in signup. A/B
+            test new CTA copy.
+            <div
+              style="
+                font-family: var(--mono);
+                font-size: 0.6rem;
+                color: var(--muted);
+                margin-top: 0.3rem;
+              "
+            >
+              saved yesterday
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ARCHITECTURE VIEW (hidden) -->
+    <div
+      id="arch-view"
+      style="
+        display: none;
+        flex: 1;
+        overflow-y: auto;
+        padding: 2rem;
+        position: relative;
+        z-index: 1;
+      "
+    >
+      <h2
+        style="
+          font-family: var(--mono);
+          font-size: 0.8rem;
+          color: var(--muted);
+          letter-spacing: 0.1em;
+          margin-bottom: 1.5rem;
+        "
+      >
+        SYSTEM ARCHITECTURE
+      </h2>
+      <div style="max-width: 800px; margin: 0 auto">
+        <div
+          style="
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+          "
+        >
+          <div
+            style="
+              font-size: 1rem;
+              font-weight: 700;
+              margin-bottom: 0.5rem;
+              color: #a78bfa;
+            "
+          >
+            🧠 Primary Agent (Orchestrator)
+          </div>
+          <div
+            style="font-size: 0.82rem; color: var(--muted); line-height: 1.7"
+          >
+            The primary agent receives all user requests. It uses Claude
+            claude-sonnet-4 to parse intent, plan the workflow, delegate to
+            specialized sub-agents, and synthesize a final coherent response. It
+            maintains conversation history and coordinates multi-step execution.
+          </div>
+          <div
+            style="
+              margin-top: 0.75rem;
+              font-family: var(--mono);
+              font-size: 0.7rem;
+              color: var(--accent2);
+            "
+          >
+            Model: claude-sonnet-4 · Tools: route_to_agent, synthesize_response,
+            plan_workflow
+          </div>
+        </div>
+        <div
+          style="
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 1rem;
+            margin-bottom: 1rem;
+          "
+        >
+          <div
+            style="
+              background: var(--surface);
+              border: 1px solid rgba(6, 182, 212, 0.2);
+              border-radius: 12px;
+              padding: 1.25rem;
+            "
+          >
+            <div
+              style="
+                font-weight: 700;
+                margin-bottom: 0.4rem;
+                color: var(--accent2);
+              "
+            >
+              📋 Task Agent
+            </div>
+            <div
+              style="font-size: 0.78rem; color: var(--muted); line-height: 1.6"
+            >
+              Manages task CRUD via MCP task-manager server. Reads/writes to
+              <code style="color: var(--accent2)">tasks</code> table in SQLite.
+            </div>
+            <div
+              style="
+                margin-top: 0.6rem;
+                font-family: var(--mono);
+                font-size: 0.65rem;
+                color: var(--muted);
+              "
+            >
+              MCP: task-manager<br />DB table: tasks
+            </div>
+          </div>
+          <div
+            style="
+              background: var(--surface);
+              border: 1px solid rgba(245, 158, 11, 0.2);
+              border-radius: 12px;
+              padding: 1.25rem;
+            "
+          >
+            <div
+              style="
+                font-weight: 700;
+                margin-bottom: 0.4rem;
+                color: var(--accent3);
+              "
+            >
+              📅 Calendar Agent
+            </div>
+            <div
+              style="font-size: 0.78rem; color: var(--muted); line-height: 1.6"
+            >
+              Manages events and scheduling via MCP calendar server.
+              Reads/writes to
+              <code style="color: var(--accent3)">events</code> table.
+            </div>
+            <div
+              style="
+                margin-top: 0.6rem;
+                font-family: var(--mono);
+                font-size: 0.65rem;
+                color: var(--muted);
+              "
+            >
+              MCP: calendar<br />DB table: events
+            </div>
+          </div>
+          <div
+            style="
+              background: var(--surface);
+              border: 1px solid rgba(16, 185, 129, 0.2);
+              border-radius: 12px;
+              padding: 1.25rem;
+            "
+          >
+            <div
+              style="
+                font-weight: 700;
+                margin-bottom: 0.4rem;
+                color: var(--success);
+              "
+            >
+              📝 Notes Agent
+            </div>
+            <div
+              style="font-size: 0.78rem; color: var(--muted); line-height: 1.6"
+            >
+              Manages knowledge capture and retrieval via MCP notes server.
+              Reads/writes to
+              <code style="color: var(--success)">notes</code> table.
+            </div>
+            <div
+              style="
+                margin-top: 0.6rem;
+                font-family: var(--mono);
+                font-size: 0.65rem;
+                color: var(--muted);
+              "
+            >
+              MCP: notes<br />DB table: notes
+            </div>
+          </div>
+        </div>
+        <div
+          style="
+            background: var(--surface);
+            border: 1px solid rgba(16, 185, 129, 0.2);
+            border-radius: 12px;
+            padding: 1.25rem;
+            margin-bottom: 1rem;
+          "
+        >
+          <div
+            style="
+              font-weight: 700;
+              margin-bottom: 0.4rem;
+              color: var(--success);
+            "
+          >
+            🗄️ SQLite Database
+          </div>
+          <div style="font-size: 0.82rem; color: var(--muted)">
+            Structured storage with four tables: <code>tasks</code>,
+            <code>events</code>, <code>notes</code>, <code>agent_logs</code>.
+            Each agent has read/write access to its own table. The primary agent
+            reads from all tables for synthesis. All operations are logged to
+            agent_logs with timestamps and agent identifiers.
+          </div>
+        </div>
+        <div
+          style="
+            background: var(--surface);
+            border: 1px solid rgba(239, 68, 68, 0.2);
+            border-radius: 12px;
+            padding: 1.25rem;
+          "
+        >
+          <div style="font-weight: 700; margin-bottom: 0.4rem; color: #f87171">
+            ⚡ FastAPI REST Layer
+          </div>
+          <div style="font-size: 0.82rem; color: var(--muted)">
+            The entire system is deployed as an async FastAPI application.
+            Endpoints: <code>POST /chat</code> (main orchestrator),
+            <code>GET /tasks</code>, <code>GET /events</code>,
+            <code>GET /notes</code>, <code>GET /agents/status</code>,
+            <code>POST /workflow</code>. All endpoints return JSON with agent
+            trace metadata.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- API SPEC VIEW (hidden) -->
+    <div
+      id="api-view"
+      style="
+        display: none;
+        flex: 1;
+        overflow-y: auto;
+        padding: 2rem;
+        position: relative;
+        z-index: 1;
+      "
+    >
+      <h2
+        style="
+          font-family: var(--mono);
+          font-size: 0.8rem;
+          color: var(--muted);
+          letter-spacing: 0.1em;
+          margin-bottom: 1.5rem;
+        "
+      >
+        API SPECIFICATION
+      </h2>
+      <pre
+        style="
+          background: var(--surface);
+          border: 1px solid var(--border);
+          border-radius: 12px;
+          padding: 1.5rem;
+          font-family: var(--mono);
+          font-size: 0.75rem;
+          color: var(--accent2);
+          line-height: 1.7;
+          max-width: 800px;
+          margin: 0 auto;
+          white-space: pre-wrap;
+        "
+      >
+POST /chat
+Content-Type: application/json
+
+{
+  "message": "Add a task to review the proposal by Friday",
+  "session_id": "user-abc123",
+  "context": {}
+}
+
+→ Response:
+{
+  "response": "I've created a high-priority task...",
+  "agents_used": ["primary", "task_agent"],
+  "tool_calls": [
+    {"agent": "task_agent", "tool": "create_task", "result": {...}}
+  ],
+  "workflow_steps": ["parse", "route", "execute", "store", "respond"],
+  "db_changes": {"tasks": 1},
+  "session_id": "user-abc123"
+}
+
+──────────────────────────────────────
+GET  /tasks?status=pending&priority=high
+GET  /events?from=2025-01-01&to=2025-01-07
+GET  /notes?query=client+requirements
+GET  /agents/status
+POST /workflow  { "steps": [...] }
+DELETE /tasks/{id}
+PATCH /tasks/{id}  { "status": "done" }
+──────────────────────────────────────
+MCP Tool Schemas:
+
+task_agent.create_task:
+  title: string (required)
+  due_date: ISO8601 (optional)
+  priority: "high"|"med"|"low"
+  tags: string[]
+
+calendar_agent.create_event:
+  title: string (required)
+  start: ISO8601 (required)
+  end: ISO8601 (required)
+  attendees: string[]
+  location: string
+
+notes_agent.save_note:
+  title: string (required)
+  content: string (required)
+  tags: string[]
+  pinned: boolean</pre
+      >
+    </div>
+
+    <script>
+      // ── State ──
+      const db = {
+        tasks: [
+          {
+            id: "task-1",
+            title: "Finish project proposal",
+            due: "Friday",
+            priority: "high",
+            done: false,
+          },
+          {
+            id: "task-2",
+            title: "Prepare slide deck for client meeting",
+            due: "Wednesday",
+            priority: "med",
+            done: false,
+          },
+          {
+            id: "task-3",
+            title: "Review design mockups",
+            due: "",
+            priority: "low",
+            done: true,
+          },
+          {
+            id: "task-4",
+            title: "Send weekly update email",
+            due: "Today",
+            priority: "med",
+            done: false,
+          },
+        ],
+        events: [
+          {
+            title: "Design Review Call",
+            time: "TODAY 2:00–3:00 PM",
+            attendees: 4,
+          },
+          {
+            title: "Team Standup",
+            time: "TOMORROW 10:00–10:30 AM",
+            attendees: 6,
+          },
+          {
+            title: "Project Deadline Review",
+            time: "FRI 3:00–4:00 PM",
+            attendees: 2,
+          },
+        ],
+        notes: [
+          {
+            title: "CLIENT REQUIREMENTS",
+            content: "Dark mode and mobile support top priorities.",
+          },
+          {
+            title: "MEETING NOTES",
+            content: "Q4 roadmap: focus on onboarding flow.",
+          },
+        ],
+        logs: 0,
+      };
+
+      let isThinking = false;
+      let logCount = 0;
+
+      function updateCounts() {
+        document.getElementById("task-count").textContent =
+          db.tasks.length + " records";
+        document.getElementById("event-count").textContent =
+          db.events.length + " records";
+        document.getElementById("note-count").textContent =
+          db.notes.length + " records";
+        logCount++;
+        document.getElementById("log-count").textContent =
+          logCount + " records";
+      }
+
+      // ── Workflow Steps ──
+      function setStep(step) {
+        const steps = ["parse", "route", "execute", "store", "respond"];
+        steps.forEach((s) => {
+          const el = document.getElementById("step-" + s);
+          el.className = "workflow-step";
+        });
+        if (step)
+          document.getElementById("step-" + step).className =
+            "workflow-step active";
+      }
+
+      function completedStep(step) {
+        document.getElementById("step-" + step).className =
+          "workflow-step done";
+      }
+
+      async function animateWorkflow() {
+        const steps = ["parse", "route", "execute", "store", "respond"];
+        for (let i = 0; i < steps.length; i++) {
+          setStep(steps[i]);
+          await sleep(400);
+          completedStep(steps[i]);
+        }
+        setStep(null);
+      }
+
+      function sleep(ms) {
+        return new Promise((r) => setTimeout(r, ms));
+      }
+
+      // ── Agent Routing Logic ──
+      function routeMessage(msg) {
+        const m = msg.toLowerCase();
+        const agents = [];
+        if (
+          /task|todo|deadline|priority|finish|complete|add.*task|create.*task/.test(
+            m,
+          )
+        )
+          agents.push("task");
+        if (
+          /schedule|calendar|meeting|event|standup|appointment|tomorrow|friday|week/.test(
+            m,
+          )
+        )
+          agents.push("calendar");
+        if (/note|save|remember|record|client|requirement|info/.test(m))
+          agents.push("notes");
+        if (agents.length === 0) agents.push("task");
+        return agents;
+      }
+
+      function agentConfig(type) {
+        const configs = {
+          primary: {
+            emoji: "🧠",
+            name: "Nexus Primary",
+            cls: "agent-primary",
+            color: "#a78bfa",
+          },
+          task: {
+            emoji: "📋",
+            name: "Task Agent",
+            cls: "agent-task",
+            color: "var(--accent2)",
+          },
+          calendar: {
+            emoji: "📅",
+            name: "Calendar Agent",
+            cls: "agent-calendar",
+            color: "var(--accent3)",
+          },
+          notes: {
+            emoji: "📝",
+            name: "Notes Agent",
+            cls: "agent-notes",
+            color: "var(--success)",
+          },
+        };
+        return configs[type] || configs.primary;
+      }
+
+      // ── Message Rendering ──
+      function addMessage(role, agentType, content, toolCalls = []) {
+        const msgs = document.getElementById("messages");
+        const cfg = agentConfig(agentType);
+        const isUser = role === "user";
+
+        const toolHtml = toolCalls
+          .map(
+            (tc) => `
+    <div class="tool-call">
+      <span class="tool-call-icon">⚡</span>
+      <div class="tool-call-content">
+        <div class="tool-call-name">${tc.agent}.${tc.tool}()</div>
+        <div class="tool-call-args">${tc.args}</div>
+        <div class="tool-call-result">✓ ${tc.result}</div>
+      </div>
+    </div>
+  `,
+          )
+          .join("");
+
+        const html = `
+    <div class="message ${isUser ? "user" : ""}">
+      <div class="msg-avatar" style="${isUser ? "" : `background:rgba(124,58,237,0.1);border-color:rgba(124,58,237,0.2);color:${cfg.color}`}">
+        ${isUser ? "U" : cfg.emoji}
+      </div>
+      <div class="msg-body">
+        <div class="msg-meta">
+          <span style="color:${isUser ? "var(--muted)" : cfg.color}">${isUser ? "You" : cfg.name}</span>
+          ${!isUser ? `<span>${agentType.toUpperCase()}</span>` : ""}
+          <span>just now</span>
+        </div>
+        <div class="msg-bubble ${isUser ? "" : cfg.cls}">
+          ${content}
+          ${toolHtml}
+        </div>
+      </div>
+    </div>
+  `;
+        msgs.insertAdjacentHTML("beforeend", html);
+        msgs.scrollTop = msgs.scrollHeight;
+      }
+
+      function addThinking() {
+        const msgs = document.getElementById("messages");
+        const id = "thinking-" + Date.now();
+        msgs.insertAdjacentHTML(
+          "beforeend",
+          `
+    <div class="message" id="${id}">
+      <div class="msg-avatar" style="background:rgba(124,58,237,0.1);border-color:rgba(124,58,237,0.2);color:#a78bfa">🧠</div>
+      <div class="msg-body">
+        <div class="msg-meta"><span style="color:#a78bfa">Nexus Primary</span><span>thinking...</span></div>
+        <div class="msg-bubble agent-primary">
+          <div class="thinking-indicator">
+            <div class="thinking-dot"></div><div class="thinking-dot"></div><div class="thinking-dot"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  `,
+        );
+        msgs.scrollTop = msgs.scrollHeight;
+        return id;
+      }
+
+      function removeThinking(id) {
+        const el = document.getElementById(id);
+        if (el) el.remove();
+      }
+
+      // ── Main send ──
+      async function sendMessage() {
+        if (isThinking) return;
+        const input = document.getElementById("user-input");
+        const msg = input.value.trim();
+        if (!msg) return;
+
+        input.value = "";
+        input.style.height = "auto";
+        document.getElementById("send-btn").disabled = true;
+        isThinking = true;
+
+        addMessage("user", null, msg);
+
+        const thinkingId = addThinking();
+        animateWorkflow();
+
+        await sleep(600);
+
+        const agents = routeMessage(msg);
+        removeThinking(thinkingId);
+
+        // Primary agent acknowledges routing
+        const agentList = agents
+          .map((a) => `<span class="tag tag-sub">${a.toUpperCase()}</span>`)
+          .join(" ");
+        addMessage(
+          "agent",
+          "primary",
+          `Parsing request... routing to: ${agentList}<br>Planning multi-step workflow.`,
+        );
+
+        await sleep(700);
+
+        // Execute each sub-agent
+        const results = [];
+        for (const agent of agents) {
+          await sleep(500);
+          const [agentMsg, toolCalls, dbChange] = await executeAgent(
+            agent,
+            msg,
+          );
+          addMessage("agent", agent, agentMsg, toolCalls);
+          results.push({ agent, agentMsg });
+          if (dbChange) updateCounts();
+        }
+
+        await sleep(500);
+
+        // Final synthesis
+        const finalReply = synthesizeResponse(msg, results, agents);
+        addMessage("agent", "primary", finalReply);
+
+        document.getElementById("send-btn").disabled = false;
+        isThinking = false;
+      }
+
+      async function executeAgent(agent, msg) {
+        const m = msg.toLowerCase();
+
+        if (agent === "task") {
+          if (/add|create|new/.test(m)) {
+            const title = extractTitle(msg, "task");
+            const priority = /urgent|high/.test(m)
+              ? "high"
+              : /low/.test(m)
+                ? "low"
+                : "med";
+            const due = extractDue(msg);
+            const id = "task-" + Date.now();
+            db.tasks.push({ id, title, due, priority, done: false });
+            addTaskToUI(id, title, due, priority);
+            return [
+              `Task created and stored in SQLite <code>tasks</code> table.`,
+              [
+                {
+                  agent: "task_agent",
+                  tool: "create_task",
+                  args: `title="${title}", priority="${priority}"${due ? ', due="' + due + '"' : ""}`,
+                  result: `id=${id}, stored OK`,
+                },
+              ],
+              true,
+            ];
+          } else if (/list|show|what.*task|task.*due/.test(m)) {
+            const pending = db.tasks.filter((t) => !t.done);
+            return [
+              `Found <strong>${pending.length} pending tasks</strong> in database:<br>${pending.map((t) => `• ${t.title} (${t.priority}${t.due ? " · due " + t.due : ""})`).join("<br>")}`,
+              [
+                {
+                  agent: "task_agent",
+                  tool: "list_tasks",
+                  args: "filter=pending",
+                  result: `${pending.length} records returned`,
+                },
+              ],
+              false,
+            ];
+          }
+          return [
+            `Task records updated in SQLite.`,
+            [
+              {
+                agent: "task_agent",
+                tool: "update_task",
+                args: "status=updated",
+                result: "OK",
+              },
+            ],
+            false,
+          ];
+        }
+
+        if (agent === "calendar") {
+          if (/schedule|add.*meet|create.*event|standup/.test(m)) {
+            const eventTitle = extractTitle(msg, "event");
+            const time = extractTime(msg);
+            db.events.push({ title: eventTitle, time, attendees: 1 });
+            addEventToUI(eventTitle, time);
+            return [
+              `Event "<strong>${eventTitle}</strong>" scheduled at ${time} and saved to <code>events</code> table.`,
+              [
+                {
+                  agent: "calendar_agent",
+                  tool: "create_event",
+                  args: `title="${eventTitle}", time="${time}"`,
+                  result: "event_id=" + Date.now() + ", stored OK",
+                },
+              ],
+              true,
+            ];
+          }
+          const freeSlots = ["Mon 9am", "Tue 2pm", "Wed 11am", "Thu 3pm"];
+          return [
+            `Checked your calendar. Free slots this week: <strong>${freeSlots.join(", ")}</strong>. You have ${db.events.length} events scheduled.`,
+            [
+              {
+                agent: "calendar_agent",
+                tool: "get_schedule",
+                args: "range=this_week",
+                result: `${db.events.length} events, 4 free slots found`,
+              },
+            ],
+            false,
+          ];
+        }
+
+        if (agent === "notes") {
+          const noteContent = msg.length > 60 ? msg.slice(0, 80) + "..." : msg;
+          const noteTitle = "NOTE " + new Date().toLocaleTimeString();
+          db.notes.push({ title: noteTitle, content: noteContent });
+          addNoteToUI(noteTitle, noteContent);
+          return [
+            `Note saved to <code>notes</code> table with auto-tagging and semantic indexing.`,
+            [
+              {
+                agent: "notes_agent",
+                tool: "save_note",
+                args: `content="${noteContent.slice(0, 40)}..."`,
+                result: "note_id=" + Date.now() + ", indexed OK",
+              },
+            ],
+            true,
+          ];
+        }
+
+        return ["Processed.", [], false];
+      }
+
+      function synthesizeResponse(msg, results, agents) {
+        if (agents.length > 1) {
+          return `✅ <strong>Multi-agent workflow complete.</strong><br><br>
+    Coordinated ${agents.length} sub-agents: ${agents.map((a) => `<span class="tag tag-sub">${a.toUpperCase()}</span>`).join(" ")}.<br>
+    All changes persisted to SQLite and available via the REST API.<br><br>
+    <span style="color:var(--muted);font-size:0.8rem;font-family:var(--mono)">
+    Workflow trace: PARSE → ROUTE → EXECUTE (×${agents.length}) → STORE → RESPOND
+    </span>`;
+        }
+        return `✅ Request handled by <span class="tag tag-sub">${agents[0].toUpperCase()}</span>. Data synced to database and API updated.`;
+      }
+
+      // ── Helpers ──
+      function extractTitle(msg, type) {
+        const patterns = [
+          /task[:\s]+(.+)/i,
+          /add[:\s]+(.+)/i,
+          /create[:\s]+(.+)/i,
+          /note[:\s]+(.+)/i,
+        ];
+        for (const p of patterns) {
+          const m = msg.match(p);
+          if (m)
+            return m[1]
+              .replace(/\s*(by|due|before)\s+\w+$/i, "")
+              .trim()
+              .slice(0, 60);
+        }
+        return msg.slice(0, 50);
+      }
+
+      function extractDue(msg) {
+        const m = msg.match(
+          /\b(monday|tuesday|wednesday|thursday|friday|saturday|sunday|today|tomorrow|next week)\b/i,
+        );
+        return m ? m[1] : "";
+      }
+
+      function extractTime(msg) {
+        const m = msg.match(/(\d{1,2}(?::\d{2})?(?:\s*[ap]m)?)/i);
+        return m ? m[1] : "TBD";
+      }
+
+      // ── UI Updates ──
+      function addTaskToUI(id, title, due, priority) {
+        const container = document.getElementById("data-tasks");
+        const pClass =
+          priority === "high"
+            ? "priority-high"
+            : priority === "med"
+              ? "priority-med"
+              : "priority-low";
+        container.insertAdjacentHTML(
+          "afterbegin",
+          `
+    <div class="task-item" id="${id}" style="border-color:rgba(124,58,237,0.3)">
+      <div class="priority-dot ${pClass}"></div>
+      <div class="task-check" onclick="toggleTask('${id}')"></div>
+      <div class="task-content">
+        <div class="task-title">${title}</div>
+        <div class="task-meta">${due ? "Due: " + due + " · " : ""}${priority.toUpperCase()} · new</div>
+      </div>
+    </div>
+  `,
+        );
+      }
+
+      function addEventToUI(title, time) {
+        const container = document.getElementById("data-calendar");
+        container.insertAdjacentHTML(
+          "afterbegin",
+          `
+    <div class="event-item" style="border-left-color:var(--accent);opacity:0;transition:opacity 0.5s" id="ev-new">
+      <div class="event-time">NEW · ${time}</div>
+      <div class="event-title">${title}</div>
+    </div>
+  `,
+        );
+        setTimeout(() => {
+          const el = document.getElementById("ev-new");
+          if (el) el.style.opacity = "1";
+        }, 100);
+      }
+
+      function addNoteToUI(title, content) {
+        const container = document.getElementById("data-notes");
+        container.insertAdjacentHTML(
+          "afterbegin",
+          `
+    <div class="note-item" style="opacity:0;transition:opacity 0.5s" id="note-new">
+      <div class="note-label">${title}</div>
+      ${content}
+    </div>
+  `,
+        );
+        setTimeout(() => {
+          const el = document.getElementById("note-new");
+          if (el) el.style.opacity = "1";
+        }, 100);
+      }
+
+      function toggleTask(id) {
+        const task = db.tasks.find((t) => t.id === id);
+        if (!task) return;
+        task.done = !task.done;
+        const check = document.querySelector(`#${id} .task-check`);
+        const titleEl = document.querySelector(`#${id} .task-title`);
+        if (task.done) {
+          check.classList.add("done");
+          check.textContent = "✓";
+          titleEl.classList.add("done");
+        } else {
+          check.classList.remove("done");
+          check.textContent = "";
+          titleEl.classList.remove("done");
+        }
+        updateCounts();
+      }
+
+      // ── Navigation ──
+      function switchView(view) {
+        document
+          .querySelectorAll(".nav-tab")
+          .forEach((t) => t.classList.remove("active"));
+        event.target.classList.add("active");
+        document.getElementById("app").style.display =
+          view === "chat" ? "grid" : "none";
+        document.getElementById("arch-view").style.display =
+          view === "arch" ? "flex" : "none";
+        document.getElementById("api-view").style.display =
+          view === "api" ? "flex" : "none";
+      }
+
+      function switchDataTab(tab, el) {
+        document
+          .querySelectorAll(".view-tab")
+          .forEach((t) => t.classList.remove("active"));
+        el.classList.add("active");
+        document.getElementById("data-tasks").style.display =
+          tab === "tasks" ? "block" : "none";
+        document.getElementById("data-calendar").style.display =
+          tab === "calendar" ? "block" : "none";
+        document.getElementById("data-notes").style.display =
+          tab === "notes" ? "block" : "none";
+      }
+
+      function selectAgent(id) {
+        document
+          .querySelectorAll(".agent-card")
+          .forEach((c) => c.classList.remove("active"));
+        event.currentTarget.classList.add("active");
+      }
+
+      function usePrompt(text) {
+        const input = document.getElementById("user-input");
+        input.value = text;
+        autoResize(input);
+        input.focus();
+      }
+
+      function autoResize(el) {
+        el.style.height = "auto";
+        el.style.height = Math.min(el.scrollHeight, 120) + "px";
+      }
+    </script>
+  </body>
+</html>

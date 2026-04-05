@@ -1,0 +1,114 @@
+# NEXUS — Multi-Agent AI System
+
+A production-ready multi-agent AI system that coordinates **task management**, **calendar scheduling**, and **knowledge capture** through specialized Claude-powered sub-agents, an SQLite database, and a FastAPI REST layer.
+
+---
+
+## Architecture
+
+```
+User Request
+    │
+    ▼
+┌─────────────────────────────┐
+│   Primary Agent (Nexus)     │  ← claude-sonnet-4 · Orchestrates all sub-agents
+│   POST /chat                │    Parses intent, routes, synthesizes response
+└─────────┬───────────────────┘
+          │ routes to
+    ┌─────┼──────────────────┐
+    ▼     ▼                  ▼
+┌────────┐ ┌──────────┐ ┌────────┐
+│ Task   │ │ Calendar │ │ Notes  │   ← Sub-agents, each with own tools
+│ Agent  │ │ Agent    │ │ Agent  │     and MCP server connection
+└───┬────┘ └────┬─────┘ └───┬────┘
+    │           │            │
+    └───────────┼────────────┘
+                ▼
+        ┌──────────────┐
+        │  SQLite DB   │   tasks · events · notes · agent_logs · sessions
+        └──────────────┘
+                ▼
+        ┌──────────────┐
+        │   FastAPI    │   REST API · /chat · /tasks · /events · /notes · /workflow
+        └──────────────┘
+```
+
+---
+
+## Setup
+
+### 1. Install dependencies
+```bash
+pip install -r requirements.txt
+```
+
+### 2. Set your API key
+```bash
+export ANTHROPIC_API_KEY=your_key_here
+```
+
+### 3. Run the server
+```bash
+python main.py
+# or
+uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+```
+
+### 4. Open the UI
+Open `index.html` in your browser — it connects to the live FastAPI backend.
+
+### 5. Explore the auto-docs
+Visit [http://localhost:8000/docs](http://localhost:8000/docs) for the interactive Swagger UI.
+
+---
+
+## API Endpoints
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `POST` | `/chat` | Main orchestrator — routes to sub-agents |
+| `GET` | `/agents/status` | Status of all agents |
+| `GET/POST` | `/tasks` | List or create tasks |
+| `PATCH/DELETE` | `/tasks/{id}` | Update or delete a task |
+| `GET/POST` | `/events` | List or create events |
+| `GET/POST` | `/notes` | List, search, or create notes |
+| `POST` | `/workflow` | Execute a multi-step workflow |
+| `GET` | `/stats` | Database record counts |
+
+---
+
+## Example: Multi-step Workflow
+
+```bash
+curl -X POST http://localhost:8000/workflow \
+  -H "Content-Type: application/json" \
+  -d '{
+    "steps": [
+      { "name": "create_task", "message": "Add high priority task: finish proposal by Friday" },
+      { "name": "block_time", "message": "Schedule 2 hours on Thursday to work on the proposal" },
+      { "name": "save_context", "message": "Note: proposal covers Q1 roadmap, 3 features, pricing changes" }
+    ]
+  }'
+```
+
+---
+
+## Multi-Agent Coordination Flow
+
+1. **PARSE** — Primary agent reads user message and extracts intent
+2. **ROUTE** — Primary agent decides which sub-agents are needed (1–3)
+3. **EXECUTE** — Each sub-agent runs with its tools, writes to DB via MCP
+4. **STORE** — All changes persisted to SQLite, logged to `agent_logs`
+5. **RESPOND** — Primary agent synthesizes all sub-agent results into one reply
+
+---
+
+## Database Schema
+
+```sql
+tasks       (id, title, description, priority, status, due_date, tags, created_at, updated_at)
+events      (id, title, start_time, end_time, location, attendees, notes, created_at)
+notes       (id, title, content, tags, pinned, created_at, updated_at)
+agent_logs  (id, session_id, agent_name, tool_name, tool_input, tool_output, duration_ms, created_at)
+sessions    (id, history, created_at, updated_at)
+```
